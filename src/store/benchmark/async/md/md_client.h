@@ -1,5 +1,6 @@
-#ifndef RETWIS_CLIENT_H
-#define RETWIS_CLIENT_H
+// -*-c++-*-
+#ifndef MD_CLIENT_H
+#define MD_CLIENT_H
 
 #include <cstdint>
 #include <string>
@@ -10,30 +11,40 @@
 #include "store/benchmark/async/retwis/retwis_transaction.h"
 #include "store/common/frontend/client.h"
 
-namespace retwis {
+// single client end-to-end latency test
+namespace md {
 
-class RetwisClient : public BenchmarkClient {
-   public:
-    RetwisClient(KeySelector *keySelector, const std::vector<Client *> &clients, uint32_t timeout,
-                 Transport &transport, uint64_t id,
+  enum WorkloadType {
+    WO,
+    MIX
+  };
+
+  class MDClient : public BenchmarkClient {
+  public:
+    MDClient(KeySelector *keySelector, const std::vector<Client *> &clients, uint32_t timeout,
+                 Transport &transport, uint64_t seed,
                  BenchmarkClientMode mode,
                  double switch_probability,
                  double arrival_rate, double think_time, double stay_probability,
                  int mpl,
                  int expDuration, int warmupSec, int cooldownSec, int tputInterval, uint32_t abortBackoff,
-                 bool retryAborted, uint32_t maxBackoff, uint32_t maxAttempts,
-                 const std::string &latencyFilename = "latency");
+             bool retryAborted, uint32_t maxBackoff, uint32_t maxAttempts,
+             uint64_t id, WorkloadType work, const std::string &latencyFilename = "latency");
 
-    virtual ~RetwisClient();
+    virtual ~MDClient();
 
-   protected:
+  protected:
     virtual AsyncTransaction *GetNextTransaction() override;
 
-   private:
+  private:
     KeySelector *keySelector;
     std::string lastOp;
-};
+    WorkloadType workType;
+    uint64_t cid;
+    uint64_t csn;
+    int ind;
+  };
 
-}  //namespace retwis
+}
 
-#endif /* RETWIS_CLIENT_H */
+#endif 

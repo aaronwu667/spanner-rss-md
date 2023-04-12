@@ -24,6 +24,7 @@
 #include "store/benchmark/async/common/uniform_key_selector.h"
 #include "store/benchmark/async/common/zipf_key_selector.h"
 #include "store/benchmark/async/retwis/retwis_client.h"
+#include "store/benchmark/async/md/md_client.h"
 #include "store/common/partitioner.h"
 #include "store/common/stats.h"
 #include "store/common/truetime.h"
@@ -38,11 +39,12 @@ enum protomode_t {
 enum benchmode_t {
     BENCH_UNKNOWN,
     BENCH_RETWIS,
+    BENCH_MD
 };
 
 enum keysmode_t { KEYS_UNKNOWN,
-                  KEYS_UNIFORM,
-                  KEYS_ZIPF };
+    KEYS_UNIFORM,
+    KEYS_ZIPF };
 
 enum transmode_t {
     TRANS_UNKNOWN,
@@ -125,8 +127,8 @@ DEFINE_validator(strong_consistency, &ValidateStrongConsistency);
 
 DEFINE_double(nb_time_alpha, 1.0, "multiple for non-block time estimates.");
 
-const std::string benchmark_args[] = {"retwis"};
-const benchmode_t benchmodes[]{BENCH_RETWIS};
+const std::string benchmark_args[] = {"retwis", "md"};
+const benchmode_t benchmodes[]{BENCH_RETWIS, BENCH_MD};
 static bool ValidateBenchmark(const char *flagname, const std::string &value) {
     int n = sizeof(benchmark_args);
     for (int i = 0; i < n; ++i) {
@@ -176,7 +178,7 @@ DEFINE_uint64(message_timeout, 10000, "length of timeout for messages in ms.");
 DEFINE_uint64(max_backoff, 5000, "max time to sleep after aborting.");
 
 const std::string partitioner_args[] = {"default", "warehouse_dist_items",
-                                        "warehouse"};
+    "warehouse"};
 const partitioner_t parts[]{DEFAULT, WAREHOUSE_DIST_ITEMS, WAREHOUSE};
 static bool ValidatePartitioner(const char *flagname,
                                 const std::string &value) {
@@ -448,7 +450,7 @@ int main(int argc, char **argv) {
 
     // parse retwis settings
     std::vector<std::string> keys;
-    if (benchMode == BENCH_RETWIS) {
+    if (benchMode == BENCH_RETWIS || benchMode == BENCH_MD) {
         if (FLAGS_keys_path.empty()) {
             if (FLAGS_num_keys > 0) {
                 std::string key = "0000000000";
@@ -486,41 +488,41 @@ int main(int argc, char **argv) {
     }
 
     switch (trans) {
-        case TRANS_TCP:
-            tport = new TCPTransport(0.0, 0.0, 0, false);
-            break;
-        case TRANS_UDP:
-            tport = new UDPTransport(0.0, 0.0, 0, false);
-            break;
-        default:
-            NOT_REACHABLE();
+    case TRANS_TCP:
+        tport = new TCPTransport(0.0, 0.0, 0, false);
+        break;
+    case TRANS_UDP:
+        tport = new UDPTransport(0.0, 0.0, 0, false);
+        break;
+    default:
+        NOT_REACHABLE();
     }
 
     switch (keySelectionMode) {
-        case KEYS_UNIFORM:
-            keySelector = new UniformKeySelector(keys);
-            break;
-        case KEYS_ZIPF:
-            keySelector = new ZipfKeySelector(keys, FLAGS_zipf_coefficient);
-            break;
-        default:
-            NOT_REACHABLE();
+    case KEYS_UNIFORM:
+        keySelector = new UniformKeySelector(keys);
+        break;
+    case KEYS_ZIPF:
+        keySelector = new ZipfKeySelector(keys, FLAGS_zipf_coefficient);
+        break;
+    default:
+        NOT_REACHABLE();
     }
 
     std::mt19937 rand(FLAGS_client_id);  // TODO: is this safe?
 
     switch (partType) {
-        case DEFAULT:
-            part = new DefaultPartitioner();
-            break;
-        case WAREHOUSE_DIST_ITEMS:
-            part = new WarehouseDistItemsPartitioner(FLAGS_tpcc_num_warehouses);
-            break;
-        case WAREHOUSE:
-            part = new WarehousePartitioner(FLAGS_tpcc_num_warehouses, rand);
-            break;
-        default:
-            NOT_REACHABLE();
+    case DEFAULT:
+        part = new DefaultPartitioner();
+        break;
+    case WAREHOUSE_DIST_ITEMS:
+        part = new WarehouseDistItemsPartitioner(FLAGS_tpcc_num_warehouses);
+        break;
+    case WAREHOUSE:
+        part = new WarehousePartitioner(FLAGS_tpcc_num_warehouses, rand);
+        break;
+    default:
+        NOT_REACHABLE();
     }
 
     std::string latencyFile;
@@ -587,32 +589,23 @@ int main(int argc, char **argv) {
         i++;
     }
 
-    // TODO: Remove this
-    // if (closestReplicas.size() > 0 &&
-    //     closestReplicas.size() != static_cast<size_t>(replica_config.n)) {
-    //     std::cerr << "If specifying closest replicas, must specify all "
-    //               << replica_config.n << "; only specified "
-    //               << closestReplicas.size() << std::endl;
-    //     return 1;
-    // }
-
     const std::size_t n_instances = replica_configs.size();
     for (std::size_t i = 0; i < n_instances; ++i) {
         Client *client = nullptr;
         switch (mode) {
-            case PROTO_STRONG: {
-                auto &shard_config = replica_configs[i];
-                auto &net_config = net_configs[i];
-                auto &client_region = client_regions[i];
+        case PROTO_STRONG: {
+            auto &shard_config = replica_configs[i];
+            auto &net_config = net_configs[i];
+            auto &client_region = client_regions[i];
 
-                client = new strongstore::Client(
-                    consistency, net_config, client_region, shard_config,
-                    FLAGS_client_id, FLAGS_num_shards, FLAGS_closest_replica,
-                    tport, part, tt, FLAGS_debug_stats, FLAGS_nb_time_alpha);
-                break;
-            }
-            default:
-                NOT_REACHABLE();
+            client = new strongstore::Client(
+                consistency, net_config, client_region, shard_config,
+                FLAGS_client_id, FLAGS_num_shards, FLAGS_closest_replica,
+                tport, part, tt, FLAGS_debug_stats, FLAGS_nb_time_alpha);
+            break;
+        }
+        default:
+            NOT_REACHABLE();
         }
 
         ASSERT(client != nullptr);
@@ -620,38 +613,58 @@ int main(int argc, char **argv) {
     }
 
     switch (benchMode) {
-        case BENCH_RETWIS:
-            break;
-        default:
-            NOT_REACHABLE();
+    case BENCH_RETWIS:
+        break;
+    case BENCH_MD:
+        break;
+    default:
+        NOT_REACHABLE();
     }
 
     uint32_t seed = FLAGS_client_id << 4;
     BenchmarkClient *bench;
     switch (benchMode) {
-        case BENCH_RETWIS:
-            bench = new retwis::RetwisClient(
-                keySelector, clients, FLAGS_message_timeout, *tport, seed,
-                bench_mode,
-                FLAGS_client_switch_probability,
-                FLAGS_client_arrival_rate, FLAGS_client_think_time, FLAGS_client_stay_probability,
-                FLAGS_mpl,
-                FLAGS_exp_duration, FLAGS_warmup_secs, FLAGS_cooldown_secs,
-                FLAGS_tput_interval,
-                FLAGS_abort_backoff, FLAGS_retry_aborted, FLAGS_max_backoff,
-                FLAGS_max_attempts);
-            break;
-        default:
-            NOT_REACHABLE();
+    case BENCH_MD:
+        bench = new md::MDClient(keySelector, clients,
+                                 FLAGS_message_timeout, *tport, seed,
+                                 bench_mode,                              
+                                 FLAGS_client_switch_probability,
+                                 FLAGS_client_arrival_rate,
+                                 FLAGS_client_think_time,
+                                 FLAGS_client_stay_probability,
+                                 FLAGS_mpl,
+                                 FLAGS_exp_duration,
+                                 FLAGS_warmup_secs, FLAGS_cooldown_secs,
+                                 FLAGS_tput_interval,
+                                 FLAGS_abort_backoff,
+                                 FLAGS_retry_aborted, FLAGS_max_backoff,
+                                 FLAGS_max_attempts, FLAGS_client_id,
+                                 md::WO);
+        break;
+    case BENCH_RETWIS:
+        bench = new retwis::RetwisClient(
+            keySelector, clients, FLAGS_message_timeout, *tport, seed,
+            bench_mode,
+            FLAGS_client_switch_probability,
+            FLAGS_client_arrival_rate, FLAGS_client_think_time, FLAGS_client_stay_probability,
+            FLAGS_mpl,
+            FLAGS_exp_duration, FLAGS_warmup_secs, FLAGS_cooldown_secs,
+            FLAGS_tput_interval,
+            FLAGS_abort_backoff, FLAGS_retry_aborted, FLAGS_max_backoff,
+            FLAGS_max_attempts);
+        break;
+    default:
+        NOT_REACHABLE();
     }
 
     switch (benchMode) {
-        case BENCH_RETWIS:
-            tport->Timer(0, [bench, bdcb]() { bench->Start(bdcb); });
-            break;
-        case BENCH_UNKNOWN:
-        default:
-            NOT_REACHABLE();
+    case BENCH_MD:
+    case BENCH_RETWIS:
+        tport->Timer(0, [bench, bdcb]() { bench->Start(bdcb); });
+        break;
+    case BENCH_UNKNOWN:
+    default:
+        NOT_REACHABLE();
     }
 
     benchClients.push_back(bench);

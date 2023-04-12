@@ -36,3 +36,7 @@ Operation ROCommit(const std::unordered_set<std::string> &keys) {
 Operation ROCommit(const std::unordered_set<std::string> &&keys) {
     return Operation{ROCOMMIT, "", "", keys};
 }
+
+Operation CheckSeqNo(const std::string &cid, const std::string &csn) {
+    return Operation{CHECK_SEQNO, cid, csn};
+}

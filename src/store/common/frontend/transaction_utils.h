@@ -15,6 +15,7 @@ enum OperationType {
     ABORT,
     WAIT,
     ROCOMMIT,
+    CHECK_SEQNO
 };
 
 struct Operation {
@@ -45,4 +46,5 @@ Operation ROCommit(const std::unordered_set<std::string> &keys);
 
 Operation ROCommit(const std::unordered_set<std::string> &&keys);
 
+Operation CheckSeqNo(const std::string &cid, const::std::string &csn);
 #endif

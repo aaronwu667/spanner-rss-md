@@ -50,7 +50,8 @@ class RssCodebase:
                                       config['out_directory_name'],
                                       '%s-%d-stats-%d.json' % (client, k, run))
 
-        client_id = i * config["client_processes_per_client_node"] + k
+        # need client id key disjoint from data
+        client_id = config['client_num_keys'] + (i * config["client_processes_per_client_node"] + k)
 
         bench_mode = config['bench_mode']
 
@@ -121,7 +122,7 @@ class RssCodebase:
         if 'partitioner' in config:
             client_command += ' --partitioner %s' % config['partitioner']
 
-        if config['benchmark_name'] == 'retwis':
+        if config['benchmark_name'] == 'retwis' or config['benchmark_name'] == 'md':
             client_command += ' --num_keys %d' % config['client_num_keys']
             if 'client_key_selector' in config:
                 client_command += ' --key_selector %s' % config['client_key_selector']
@@ -225,7 +226,8 @@ class RssCodebase:
             '--num_shards', config['num_shards'],
             '--stats_file', stats_file,
             '--clock_error', truetime_error,
-            '--strong_consistency', config['consistency']]])
+            '--strong_consistency', config['consistency'],
+            '--num_clients', config['client_total']]])
 
         if 'message_transport_type' in config['replication_protocol_settings']:
             replica_command += ' --trans_protocol %s' % config['replication_protocol_settings']['message_transport_type']
@@ -326,7 +328,7 @@ class RssCodebase:
         if 'server_debug_stats' in config and config['server_debug_stats']:
             replica_command += ' --debug_stats'
 
-        if config['benchmark_name'] == 'retwis':
+        if config['benchmark_name'] == 'retwis' or config['benchmark_name'] == 'md':
             replica_command += ' --num_keys %d' % config['client_num_keys']
             if 'server_preload_keys' in config:
                 replica_command += ' --preload_keys=%s' % str(
