@@ -8,14 +8,14 @@
 #include <random>
 
 namespace md {
-  class WriteOnly : public MDTransaction {
-  public:
-    WriteOnly(KeySelector *keySelector, std::mt19937 &rand, const std::string cid, const std::string csn);
-    virtual ~WriteOnly();
+     class WriteOnly : public MDTransaction {
+     public:
+          WriteOnly(KeySelector *keySelector, std::mt19937 &rand, const std::string cid, const std::string csn);
+          virtual ~WriteOnly();
 
-  protected:
-    Operation GetNextOperation(std::size_t op_index) override;
-  };
+     protected:
+          Operation GetNextOperation(std::size_t op_index) override;
+     };
 }
 
 

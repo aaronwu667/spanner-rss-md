@@ -1,6 +1,7 @@
 #ifndef OPEN_BENCHMARK_CLIENT_H
 #define OPEN_BENCHMARK_CLIENT_H
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <random>
@@ -30,14 +31,14 @@ class BenchmarkClient
 {
 public:
   BenchmarkClient(const std::vector<Client *> &clients, uint32_t timeout,
-                  Transport &transport, uint64_t id,
+                  Transport &transport, uint64_t seed,
                   BenchmarkClientMode mode,
                   double switch_probability,
                   double arrival_rate, double think_time, double stay_probability,
                   int mpl,
                   int expDuration, int warmupSec, int cooldownSec,
                   uint32_t abortBackoff, bool retryAborted,
-                  uint32_t maxBackoff, uint32_t maxAttempts,
+                  uint32_t maxBackoff, uint32_t maxAttempts, uint64_t id,
                   const std::string &latencyFilename = "");
   virtual ~BenchmarkClient();
 
@@ -56,7 +57,11 @@ public:
 
 protected:
   virtual AsyncTransaction *GetNextTransaction() = 0;
+  uint64_t cid;
+  uint64_t csn;
+  uint64_t last_exec_csn;
 
+    
   inline std::mt19937 &GetRand() { return rand_; }
 
   enum BenchState
@@ -130,6 +135,7 @@ private:
 
   void SeqNoCallback(const uint64_t session_id, const std::string &csn, int status,
                      const std::string &key, const std::string &val, Timestamp ts);
+  void WriteConstraintCallback(const uint64_t session_id, const std::string &dep);
 
   void GetTimeout(const uint64_t session_id,
                   int status, const std::string &key);

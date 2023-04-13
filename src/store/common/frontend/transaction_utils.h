@@ -6,23 +6,24 @@
 #include <vector>
 
 enum OperationType {
-    BEGIN_RW = 0,
-    BEGIN_RO,
-    GET,
-    GET_FOR_UPDATE,
-    PUT,
-    COMMIT,
-    ABORT,
-    WAIT,
-    ROCOMMIT,
-    CHECK_SEQNO
+     BEGIN_RW = 0,
+     BEGIN_RO,
+     GET,
+     GET_FOR_UPDATE,
+     PUT,
+     COMMIT,
+     ABORT,
+     WAIT,
+     ROCOMMIT,
+     CHECK_SEQNO,
+     CHECK_WRITE_CONST
 };
 
 struct Operation {
-    OperationType type;
-    std::string key;
-    std::string value;
-    const std::unordered_set<std::string> keys;
+     OperationType type;
+     std::string key;
+     std::string value;
+     const std::unordered_set<std::string> keys;
 };
 
 Operation BeginRW();
@@ -46,5 +47,7 @@ Operation ROCommit(const std::unordered_set<std::string> &keys);
 
 Operation ROCommit(const std::unordered_set<std::string> &&keys);
 
-Operation CheckSeqNo(const std::string &cid, const::std::string &csn);
+Operation CheckSeqNo(const std::string &cid, const std::string &csn);
+
+Operation CheckWriteConst(const std::string &dep);
 #endif

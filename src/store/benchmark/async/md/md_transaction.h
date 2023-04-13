@@ -10,30 +10,33 @@
 #include "store/common/frontend/client.h"
 
 namespace md {
+     class MDTransaction : public AsyncTransaction {
+     public:
+          MDTransaction(KeySelector *keySelector, int numKeys, std::mt19937 &rand, const std::string ttype, const std::string cid, const std::string csn, TType type);
+          virtual ~MDTransaction();
 
-class MDTransaction : public AsyncTransaction {
-   public:
-  MDTransaction(KeySelector *keySelector, int numKeys, std::mt19937 &rand, const std::string ttype, const std::string cid, const std::string csn);
-    virtual ~MDTransaction();
+     protected:
+          inline const std::string &GetKey(int i) const {
+               return keySelector->GetKey(keyIdxs[i]);
+          }
 
-   protected:
-    inline const std::string &GetKey(int i) const {
-        return keySelector->GetKey(keyIdxs[i]);
-    }
+          inline size_t GetNumKeys() const { return keyIdxs.size(); }
 
-    inline size_t GetNumKeys() const { return keyIdxs.size(); }
+          const std::string &GetTransactionType() override { return ttype_; };
 
-    const std::string &GetTransactionType() override { return ttype_; };
+          const std::string &GetSequenceNumber() override {return csn;}
 
-    KeySelector *keySelector;
-    std::string cid;
-    std::string csn;
+          const TType GetTType() override {return transaction_type_enum;}
+
+          KeySelector *keySelector;
+          const std::string cid;
+          const std::string csn;
     
-   private:
-    std::vector<int> keyIdxs;
-    std::string ttype_;
-
-};
+     private:
+          std::vector<int> keyIdxs;
+          std::string ttype_;
+          TType transaction_type_enum;
+     };
 
 } 
 

@@ -118,6 +118,7 @@ void ShardClient::GetForUpdate(uint64_t transaction_id, const std::string &key,
     Get(transaction_id, key, gcb, gtcb, timeout, true);
 }
 
+// TODO: Get at client specified timestamp     
 void ShardClient::Get(uint64_t transaction_id, const std::string &key,
                       get_callback gcb, get_timeout_callback gtcb,
                       uint32_t timeout, bool for_update) {

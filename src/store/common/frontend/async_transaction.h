@@ -17,6 +17,7 @@ struct StringPointerComp {
 typedef std::map<const std::string *, const std::string *, StringPointerComp>
     ReadValueMap;
 
+enum TType {RW, RO};
 class AsyncTransaction {
    public:
     AsyncTransaction() {}
@@ -25,6 +26,10 @@ class AsyncTransaction {
     virtual Operation GetNextOperation(std::size_t op_index) = 0;
 
     virtual const std::string &GetTransactionType() = 0;
+
+    virtual const TType GetTType() = 0;
+
+    virtual const std::string &GetSequenceNumber() = 0;
 };
 
 #endif

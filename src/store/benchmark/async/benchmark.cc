@@ -36,11 +36,7 @@ enum protomode_t {
     PROTO_STRONG,
 };
 
-enum benchmode_t {
-    BENCH_UNKNOWN,
-    BENCH_RETWIS,
-    BENCH_MD
-};
+enum benchmode_t { BENCH_UNKNOWN, BENCH_RETWIS, BENCH_MD };
 
 enum keysmode_t { KEYS_UNKNOWN,
     KEYS_UNIFORM,
@@ -144,6 +140,11 @@ DEFINE_string(benchmark, benchmark_args[0],
               "the mode of the protocol to use"
               " during this experiment");
 DEFINE_validator(benchmark, &ValidateBenchmark);
+
+
+const std::string md_workload_args[] = {"wo", "mix"};
+const md::WorkloadType workloads[]{md::WorkloadType::WO, md::WorkloadType::MIX};
+DEFINE_string(md_workload, md_workload_args[0], "The workload to use for MD benchmark");
 
 /**
  * Experiment settings.
@@ -414,6 +415,17 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    // parse MD workload
+    md::WorkloadType workloadType = md::WorkloadType::MIX;
+    auto numWorkloads = sizeof(md_workload_args);
+    for (auto i = 0; i < numWorkloads; i++) {
+        if (FLAGS_md_workload == md_workload_args[i]) {
+            workloadType = workloads[i];
+            break;
+        }
+    }
+    
+    
     // parse partitioner
     partitioner_t partType = DEFAULT;
     int numParts = sizeof(partitioner_args);
@@ -639,7 +651,7 @@ int main(int argc, char **argv) {
                                  FLAGS_abort_backoff,
                                  FLAGS_retry_aborted, FLAGS_max_backoff,
                                  FLAGS_max_attempts, FLAGS_client_id,
-                                 md::WO);
+                                 workloadType);
         break;
     case BENCH_RETWIS:
         bench = new retwis::RetwisClient(
@@ -651,7 +663,7 @@ int main(int argc, char **argv) {
             FLAGS_exp_duration, FLAGS_warmup_secs, FLAGS_cooldown_secs,
             FLAGS_tput_interval,
             FLAGS_abort_backoff, FLAGS_retry_aborted, FLAGS_max_backoff,
-            FLAGS_max_attempts);
+            FLAGS_max_attempts, FLAGS_client_id);
         break;
     default:
         NOT_REACHABLE();

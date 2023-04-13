@@ -12,27 +12,27 @@
 
 namespace retwis {
 
-class RetwisClient : public BenchmarkClient {
-   public:
-    RetwisClient(KeySelector *keySelector, const std::vector<Client *> &clients, uint32_t timeout,
-                 Transport &transport, uint64_t id,
-                 BenchmarkClientMode mode,
-                 double switch_probability,
-                 double arrival_rate, double think_time, double stay_probability,
-                 int mpl,
-                 int expDuration, int warmupSec, int cooldownSec, int tputInterval, uint32_t abortBackoff,
-                 bool retryAborted, uint32_t maxBackoff, uint32_t maxAttempts,
-                 const std::string &latencyFilename = "latency");
+     class RetwisClient : public BenchmarkClient {
+     public:
+          RetwisClient(KeySelector *keySelector, const std::vector<Client *> &clients, uint32_t timeout,
+                       Transport &transport, uint64_t seed,
+                       BenchmarkClientMode mode,
+                       double switch_probability,
+                       double arrival_rate, double think_time, double stay_probability,
+                       int mpl,
+                       int expDuration, int warmupSec, int cooldownSec, int tputInterval, uint32_t abortBackoff,
+                       bool retryAborted, uint32_t maxBackoff, uint32_t maxAttempts, uint64_t id,
+                       const std::string &latencyFilename = "latency");
 
-    virtual ~RetwisClient();
+          virtual ~RetwisClient();
 
-   protected:
-    virtual AsyncTransaction *GetNextTransaction() override;
+     protected:
+          virtual AsyncTransaction *GetNextTransaction() override;
 
-   private:
-    KeySelector *keySelector;
-    std::string lastOp;
-};
+     private:
+          KeySelector *keySelector;
+          std::string lastOp;
+     };
 
 }  //namespace retwis
 
